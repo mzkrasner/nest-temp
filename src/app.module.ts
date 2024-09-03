@@ -2,12 +2,16 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from '@/users/users.module';
+import { UsersController } from '@/users/users.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { DiscordModule } from '@/discord/discord.module';
+import { DiscordController } from '@/discord/discord.controller';
 
 @Module({
   imports: [
     UsersModule,
+    DiscordModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
@@ -27,7 +31,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       inject: [ConfigService],
     }),
   ],
-  controllers: [AppController],
+  controllers: [AppController, DiscordController, UsersController],
   providers: [AppService],
 })
 export class AppModule {}
