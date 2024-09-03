@@ -30,4 +30,21 @@ export class DiscordService implements OnModuleInit {
         .map((role) => role.name),
     }));
   }
+
+  async getRolesByUserId(userId: string): Promise<string[] | null> {
+    try {
+      const member = await this.guild.members.fetch(userId);
+
+      if (!member) {
+        return null; // User not found in the guild
+      }
+
+      return member.roles.cache
+        .filter((role) => role.name !== '@everyone')
+        .map((role) => role.name);
+    } catch (error) {
+      console.error(`Error fetching roles for user ${userId}:`, error);
+      return null; // Return null if there's an error (e.g., user not in guild)
+    }
+  }
 }

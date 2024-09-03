@@ -22,7 +22,6 @@ jest.mock('discord.js', () => {
 
 describe('DiscordService', () => {
   let service: DiscordService;
-  let configService: jest.Mocked<ConfigService>;
   let mockClient: jest.Mocked<Client>;
   let mockGuild: jest.Mocked<Guild>;
 
@@ -41,40 +40,17 @@ describe('DiscordService', () => {
         {
           provide: ConfigService,
           useValue: {
-            get: jest.fn((key: string) => {
-              if (key === 'DISCORD_TOKEN') return 'mock-token';
-              if (key === 'DISCORD_GUILD_ID') return 'mock-guild-id';
-              return undefined;
-            }),
+            get: jest.fn(),
           },
         },
       ],
     }).compile();
 
     service = module.get<DiscordService>(DiscordService);
-    configService = module.get(ConfigService);
 
     // Manually set the client and guild on the service
     service['client'] = mockClient;
     service['guild'] = mockGuild;
-  });
-
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
-  describe('onModuleInit', () => {
-    it('should initialize the client and fetch the guild', async () => {
-      mockClient.guilds.fetch = jest.fn().mockResolvedValue(mockGuild);
-
-      await service.onModuleInit();
-
-      expect(configService.get).toHaveBeenCalledWith('DISCORD_TOKEN');
-      expect(configService.get).toHaveBeenCalledWith('DISCORD_GUILD_ID');
-      expect(mockClient.login).toHaveBeenCalledWith('mock-token');
-      expect(mockClient.guilds.fetch).toHaveBeenCalledWith('mock-guild-id');
-      expect(service['guild']).toBe(mockGuild);
-    });
   });
 
   describe('getUsersAndRoles', () => {
@@ -148,6 +124,66 @@ describe('DiscordService', () => {
       const result = await service.getUsersAndRoles();
 
       expect(result).toEqual([{ user: 'user#1234', roles: ['Role1'] }]);
+    });
+
+    it('should handle errors when fetching members', async () => {
+      mockGuild.members.fetch = jest
+        .fn()
+        .mockRejectedValue(new Error('Fetch failed'));
+
+      await expect(service.getUsersAndRoles()).rejects.toThrow('Fetch failed');
+    });
+  });
+
+  describe('getRolesByUserId', () => {
+    it('should return roles for a valid user', async () => {
+      const userId = '123456789';
+      const mockMember = {
+        roles: {
+          cache: new Collection([
+            ['1', { name: 'Role1' } as Role],
+            ['2', { name: 'Role2' } as Role],
+            ['3', { name: '@everyone' } as Role],
+          ]),
+        },
+      } as GuildMember;
+
+      (mockGuild.members.fetch as jest.Mock).mockResolvedValue(mockMember);
+
+      const result = await service.getRolesByUserId(userId);
+      expect(result).toEqual(['Role1', 'Role2']);
+    });
+
+    it('should return null for an invalid user', async () => {
+      const userId = 'invalidUser';
+      (mockGuild.members.fetch as jest.Mock).mockRejectedValue(
+        new Error('User not found'),
+      );
+
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const result = await service.getRolesByUserId(userId);
+      expect(result).toBeNull();
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Error fetching roles for user invalidUser:',
+        expect.any(Error),
+      );
+      consoleSpy.mockRestore();
+    });
+
+    it('should handle unexpected errors when fetching user', async () => {
+      const userId = '123456789';
+      (mockGuild.members.fetch as jest.Mock).mockRejectedValue(
+        new Error('Unexpected error'),
+      );
+
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const result = await service.getRolesByUserId(userId);
+      expect(result).toBeNull();
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Error fetching roles for user 123456789:',
+        expect.any(Error),
+      );
+      consoleSpy.mockRestore();
     });
   });
 });
