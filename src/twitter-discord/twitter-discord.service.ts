@@ -58,6 +58,17 @@ export class TwitterDiscordService {
     await this.discordService.sendMessage(discordChannelId, message);
     this.logger.log(`Posted new tweet: ${latestTweet.id}`);
   }
+  catch(error) {
+    if (error instanceof Error) {
+      if (error.message.includes('Twitter')) {
+        this.logger.error(`Error fetching tweets: ${error.message}`);
+      } else {
+        this.logger.error(`Error posting to Discord: ${error.message}`);
+      }
+    } else {
+      this.logger.error('An unexpected error occurred');
+    }
+  }
 
   async manualCheckAndPost(): Promise<string> {
     await this.checkAndPostTweets();
