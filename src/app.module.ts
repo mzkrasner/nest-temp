@@ -7,11 +7,14 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DiscordModule } from '@/discord/discord.module';
 import { DiscordController } from '@/discord/discord.controller';
+import { TwitterDiscordModule } from '@/twitter-discord/twitter-discord.module';
+import { TwitterDiscordController } from '@/twitter-discord/twitter-discord.controller';
 
 @Module({
   imports: [
     UsersModule,
     DiscordModule,
+    TwitterDiscordModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
@@ -31,7 +34,12 @@ import { DiscordController } from '@/discord/discord.controller';
       inject: [ConfigService],
     }),
   ],
-  controllers: [AppController, DiscordController, UsersController],
+  controllers: [
+    AppController,
+    DiscordController,
+    UsersController,
+    TwitterDiscordController,
+  ],
   providers: [AppService],
 })
 export class AppModule {}

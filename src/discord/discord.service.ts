@@ -1,6 +1,12 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Client, GatewayIntentBits, Guild } from 'discord.js';
+import {
+  Client,
+  GatewayIntentBits,
+  Guild,
+  Message,
+  TextChannel,
+} from 'discord.js';
 
 @Injectable()
 export class DiscordService implements OnModuleInit {
@@ -46,5 +52,20 @@ export class DiscordService implements OnModuleInit {
       console.error(`Error fetching roles for user ${userId}:`, error);
       return null; // Return null if there's an error (e.g., user not in guild)
     }
+  }
+
+  async sendMessage(channelId: string, message: string): Promise<void> {
+    const channel = (await this.client.channels.fetch(
+      channelId,
+    )) as TextChannel;
+    await channel.send(message);
+  }
+
+  async getLatestMessage(channelId: string): Promise<Message | undefined> {
+    const channel = (await this.client.channels.fetch(
+      channelId,
+    )) as TextChannel;
+    const messages = await channel.messages.fetch({ limit: 1 });
+    return messages.first();
   }
 }
